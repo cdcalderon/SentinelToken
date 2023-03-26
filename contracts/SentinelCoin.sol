@@ -1,35 +1,44 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SentinelCoin is ERC20, Ownable {
-    mapping(address => bool) private bannedAddresses;
+contract SentinelCoin is ERC777, Ownable {
+    mapping(address => bool) private _bannedAddresses;
 
-    event AddressBanned(address indexed _address, bool _banned);
-
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
-
-    function banAddress(address _address) public onlyOwner {
-        bannedAddresses[_address] = true;
-        emit AddressBanned(_address, true);
+    constructor(
+        uint256 initialSupply,
+        address[] memory defaultOperators
+    ) ERC777("SentinelCoin", "SNT", defaultOperators) {
+        _mint(msg.sender, initialSupply, "", "");
     }
 
-    function unbanAddress(address _address) public onlyOwner {
-        bannedAddresses[_address] = false;
-        emit AddressBanned(_address, false);
+    function addToBannedAddresses(address user) public onlyOwner {
+        require(!_bannedAddresses[user], "SentinelCoin: User already banned");
+        _bannedAddresses[user] = true;
     }
 
-    function transfer(address recipient, uint256 amount) public override returns (bool) {
-        require(!bannedAddresses[msg.sender], "Sender is banned from sending tokens");
-        require(!bannedAddresses[recipient], "Recipient is banned from receiving tokens");
-        return super.transfer(recipient, amount);
+    function removeFromBannedAddresses(address user) public onlyOwner {
+        require(_bannedAddresses[user], "SentinelCoin: User not banned");
+        _bannedAddresses[user] = false;
     }
 
-    function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
-        require(!bannedAddresses[sender], "Sender is banned from sending tokens");
-        require(!bannedAddresses[recipient], "Recipient is banned from receiving tokens");
-        return super.transferFrom(sender, recipient, amount);
+    function isBanned(address user) public view returns (bool) {
+        return _bannedAddresses[user];
+    }
+
+    function _beforeTokenTransfer(
+        address operator,
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override {
+        super._beforeTokenTransfer(operator, from, to, amount);
+
+        require(
+            !_bannedAddresses[from] && !_bannedAddresses[to],
+            "SentinelCoin: Either sender or receiver is banned"
+        );
     }
 }
