@@ -9,7 +9,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * @dev A fungible token that allows an admin to ban specified addresses from sending and receiving tokens.
  */
 contract SentinelCoin is ERC777, Ownable {
-
     mapping(address => bool) private _bannedAddresses;
 
     /**
@@ -17,7 +16,10 @@ contract SentinelCoin is ERC777, Ownable {
      * @param initialSupply The initial supply of tokens to be minted.
      * @param defaultOperators An array of default operators for the token.
      */
-    constructor(uint256 initialSupply, address[] memory defaultOperators) ERC777("SentinelCoin", "SNT", defaultOperators) {
+    constructor(
+        uint256 initialSupply,
+        address[] memory defaultOperators
+    ) ERC777("SentinelCoin", "SNT", defaultOperators) {
         _mint(msg.sender, initialSupply, "", "");
     }
 
@@ -56,9 +58,17 @@ contract SentinelCoin is ERC777, Ownable {
      * @param to The address tokens are transferred to.
      * @param amount The amount of tokens transferred.
      */
-    function _beforeTokenTransfer(address operator, address from, address to, uint256 amount) internal virtual override {
+    function _beforeTokenTransfer(
+        address operator,
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override {
         super._beforeTokenTransfer(operator, from, to, amount);
 
-        require(!_bannedAddresses[from] && !_bannedAddresses[to], "SentinelCoin: Either sender or receiver is banned");
+        require(
+            !_bannedAddresses[from] && !_bannedAddresses[to],
+            "SentinelCoin: Either sender or receiver is banned"
+        );
     }
 }
